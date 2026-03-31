@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Boston Shooting Incidents</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 24px;
+      background: #fff;
+      color: #222;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 6px; }
+    .subtitle { color: #555; font-size: 0.9rem; margin-bottom: 32px; }
+    h2 { font-size: 1rem; margin-bottom: 4px; }
+    .caption { color: #888; font-size: 0.82rem; margin-bottom: 10px; font-style: italic; }
+    .chart-box { border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin-bottom: 36px; }
+  </style>
+</head>
+<body>
+
+  <h1>Boston Shooting Incidents: Where & When?</h1>
+  <p class="subtitle">
+    1,736 shooting incidents from 2023–2026. Chart 1 shows which districts had the most shootings.
+    <strong>CLICK A BAR! :D</strong> so you can see how the district's shootings trended month by month in Chart 2.
+  </p>
+
+  <h2>Chart 1 — Shooting Incidents by District</h2>
+  <p class="caption">Click a bar to explore that district's trend over time below.</p>
+  <div class="chart-box">
+    <div id="chart1" style="height:340px;"></div>
+  </div>
+
+  <h2 id="chart2-title">Chart 2 — Monthly Shooting Trend</h2>
+  <p class="caption" id="chart2-caption">Click a district above to see its monthly trend.</p>
+  <div class="chart-box">
+    <div id="chart2" style="height:300px;"></div>
+  </div>
+
+<script>
+//Data from Colab
+
+const districtTotals = {'B3': 421, 'D4': 86, 'B2': 417, 'C11': 336, 'D14': 41, 'E18': 110, 'A1': 40, 'E13': 119, 'A7': 29, 'E5': 57, 'C6': 61, 'A15': 16, 'External': 3};
+
+const allMonths = ['2023-01','2023-02','2023-03','2023-04','2023-05','2023-06','2023-07','2023-08','2023-09','2023-10','2023-11','2023-12','2024-01','2024-02','2024-03','2024-04','2024-05','2024-06','2024-07','2024-08','2024-09','2024-10','2024-11','2024-12','2025-01','2025-02','2025-03','2025-04','2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03'];
+
+const districtByMonth = {
+  "B3":       [12,10,10,10,8,19,16,19,13,14,10,9,6,7,5,8,8,7,15,8,9,9,18,4,4,8,12,17,15,17,16,17,12,9,12,8,12,5,3],
+  "D4":       [2,4,0,2,5,2,7,3,3,2,0,4,0,0,2,1,3,4,2,2,3,0,1,1,1,2,2,1,2,4,4,4,4,3,1,2,1,0,2],
+  "B2":       [14,13,8,6,10,14,19,17,10,9,15,15,7,7,8,6,14,10,13,8,12,8,9,7,10,9,8,8,11,13,16,16,16,7,11,10,13,6,4],
+  "C11":      [13,2,8,12,14,12,11,9,15,14,10,11,7,9,2,5,6,10,19,16,8,9,5,7,6,7,7,8,3,9,10,16,6,9,4,2,4,7,4],
+  "D14":      [1,0,0,0,0,1,1,0,0,3,3,2,1,0,1,0,1,1,3,1,1,0,1,1,2,1,2,1,0,4,3,1,1,0,1,2,0,0,1],
+  "E18":      [1,0,1,2,1,4,4,3,3,5,8,9,1,1,2,0,5,2,2,6,4,4,4,3,2,2,4,6,3,0,5,2,3,0,4,3,0,0,1],
+  "A1":       [0,0,2,2,5,2,1,1,0,0,0,0,1,1,0,1,3,1,1,1,1,1,0,0,1,0,3,0,3,1,1,0,3,1,1,0,1,1,0],
+  "E13":      [4,2,3,2,2,4,12,4,3,7,6,6,2,0,3,3,1,8,7,2,5,2,1,2,2,1,0,2,1,3,4,2,1,5,1,2,1,0,3],
+  "A7":       [1,2,1,2,0,2,0,2,1,0,1,1,0,0,0,0,4,1,0,0,3,0,0,0,1,0,0,1,1,0,0,0,2,1,0,1,0,0,1],
+  "E5":       [0,3,1,1,1,1,0,3,0,2,0,1,1,0,0,1,3,0,1,3,3,1,2,5,0,0,2,4,2,1,1,1,2,0,4,1,2,3,1],
+  "C6":       [3,0,1,3,4,2,2,0,1,2,1,3,2,0,0,2,2,4,3,2,1,2,1,1,3,1,2,2,2,1,0,0,1,1,1,1,1,2,1],
+  "A15":      [0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,3,2,1,0,1,0,1,1,0,0,1,1,0,0,0,0,0,0,1,0,1,0],
+  "External": [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0],
+};
+
+// Districts by total
+const sorted = Object.entries(districtTotals)
+  .filter(([d]) => d !== 'External') 
+  .sort((a, b) => b[1] - a[1]);
+
+const districts = sorted.map(d => d[0]);
+const totals    = sorted.map(d => d[1]);
+
+//  Blue for the base and Red for the Highlighted
+const blue = '#4a90d9';
+const red  = '#e05c3a';
+let selectedIdx = 0;
+
+function barColors(idx) {
+  return districts.map((_, i) => i === idx ? red : blue);
+}
+
+// Bar chart
+Plotly.newPlot('chart1', [{
+  type: 'bar',
+  x: districts,
+  y: totals,
+  marker: { color: barColors(0) },
+  hovertemplate: '<b>District %{x}</b><br>%{y} shooting incidents<extra></extra>'
+}], {
+  paper_bgcolor: 'white',
+  plot_bgcolor: 'white',
+  margin: { t: 10, r: 20, b: 50, l: 60 },
+  xaxis: { title: 'District', gridcolor: '#eee' },
+  yaxis: { title: 'Total Shootings', gridcolor: '#eee' }
+}, { responsive: true, displayModeBar: true });
+
+// Line Chart
+function drawChart2(district) {
+  Plotly.newPlot('chart2', [{
+    type: 'scatter',
+    mode: 'lines+markers',
+    x: allMonths,
+    y: districtByMonth[district],
+    line: { color: red, width: 2.5 },
+    marker: { color: red, size: 5 },
+    hovertemplate: '<b>%{x}</b><br>%{y} shootings<extra></extra>'
+  }], {
+    paper_bgcolor: 'white',
+    plot_bgcolor: 'white',
+    margin: { t: 10, r: 20, b: 60, l: 50 },
+    xaxis: { title: 'Month', gridcolor: '#eee', tickangle: -45, nticks: 15 },
+    yaxis: { title: 'Shootings', gridcolor: '#eee' }
+  }, { responsive: true, displayModeBar: true });
+
+  document.getElementById('chart2-title').textContent =
+    `Chart 2 — District ${district}: Monthly Shooting Trend`;
+  document.getElementById('chart2-caption').textContent =
+    `Showing shooting incidents per month in District ${district} from Jan 2023 to Mar 2026.`;
+}
+
+//
+drawChart2(districts[0]);
+
+// Clicking function
+document.getElementById('chart1').on('plotly_click', function(eventData) {
+  const district = eventData.points[0].x;
+  selectedIdx = districts.indexOf(district);
+  Plotly.restyle('chart1', { 'marker.color': [barColors(selectedIdx)] });
+  drawChart2(district);
+});
+</script>
+</body>
+</html>
